@@ -37,11 +37,16 @@
             </TabItem>
             <TabItem Header="Krok 2">
                 <Grid Background="#FFE5E5E5">
-                    <TextBox x:Name="textboxOutputFilename" HorizontalAlignment="Left" Height="23" Margin="117,76,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="196"/>
-                    <Label x:Name="label2" Content="Wpisz nazwę dla pliku wynikowego" HorizontalAlignment="Left" Margin="159,45,0,0" VerticalAlignment="Top"/>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="262*"/>
+                        <ColumnDefinition Width="229*"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="textboxOutputFilename" HorizontalAlignment="Left" Height="23" Margin="117,76,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="196" Grid.ColumnSpan="2"/>
+                    <Label x:Name="label2" Content="Wpisz nazwę dla pliku wynikowego" HorizontalAlignment="Left" Margin="163,26,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
                     <Label x:Name="label" Content="Wybrana nazwa dla pliku wynikowego:" HorizontalAlignment="Left" Margin="10,131,0,0" VerticalAlignment="Top"/>
-                    <Label x:Name="labelOutputFilename" Content="brak nazwy" HorizontalAlignment="Left" Margin="229,131,0,0" VerticalAlignment="Top"/>
-                    <Button x:Name="buttonApplyOutputFilename" Content="Zastosuj" HorizontalAlignment="Left" Margin="318,79,0,0" VerticalAlignment="Top" Width="75" Click="buttonApplyOutputFilename_Click"/>
+                    <Label x:Name="labelOutputFilename" Content="brak nazwy" HorizontalAlignment="Left" Margin="229,131,0,0" VerticalAlignment="Top" Grid.ColumnSpan="2"/>
+                    <Button x:Name="buttonApplyOutputFilename" Content="Zastosuj" HorizontalAlignment="Left" Margin="56,79,0,0" VerticalAlignment="Top" Width="75" Click="buttonApplyOutputFilename_Click" Grid.Column="1"/>
+                    <Label x:Name="label2_Copy" Content="pomiń rozszerzenie" HorizontalAlignment="Left" Margin="200,45,0,0" VerticalAlignment="Top" Foreground="Red" Grid.ColumnSpan="2"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Krok 3">
@@ -79,7 +84,7 @@
                         <ColumnDefinition Width="151*"/>
                         <ColumnDefinition Width="340*"/>
                     </Grid.ColumnDefinitions>
-                    <ProgressBar x:Name="progressBar" HorizontalAlignment="Left" Height="19" Margin="0,97,-6,0" VerticalAlignment="Top" Width="497" Grid.ColumnSpan="2"/>
+                    <ProgressBar x:Name="progressBar" HorizontalAlignment="Left" Height="19" Margin="10,97,0,0" VerticalAlignment="Top" Width="471" Grid.ColumnSpan="2"/>
                     <Label x:Name="label4" Content="Operacja wykonana w:" HorizontalAlignment="Left" Margin="0,66,0,0" VerticalAlignment="Top"/>
                     <Button x:Name="buttonEncrypt" Content="Szyfruj" HorizontalAlignment="Left" Margin="118,31,0,0" VerticalAlignment="Top" Width="75" Click="buttonEncrypt_Click" Grid.ColumnSpan="2"/>
                     <Button x:Name="buttonDecrypt" Content="Deszyfruj" HorizontalAlignment="Left" Margin="132,31,0,0" VerticalAlignment="Top" Width="75" Click="buttonDecrypt_Click" Grid.Column="1"/>
