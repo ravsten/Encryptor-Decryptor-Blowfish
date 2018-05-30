@@ -126,7 +126,7 @@ namespace EncryptorDecryptor1
             addXmlHeader();
             sessionKey = GenerateRandomCryptographicKey(keyLength);
             fileExt = Path.GetExtension(inputFilename);
-            string contentToEncrypt = "";
+            byte[] contentBytes;
             using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             using (BufferedStream bs = new BufferedStream(fs))
             using (StreamReader sr = new StreamReader(bs))
@@ -140,27 +140,20 @@ namespace EncryptorDecryptor1
                 progressBar.Value = 1;
             }
             using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (BufferedStream bs = new BufferedStream(fs))
-            using (StreamReader sr = new StreamReader(bs))
             {
-                string s = "";
-                while ((s = sr.ReadLine()) != null)
-                {
-                    progressBar.Value++;
-                    Console.WriteLine(progressBar.Value);
-                    contentToEncrypt += s;
-                    if (!sr.EndOfStream) contentToEncrypt += Environment.NewLine;
-                }
+                contentBytes = new byte[fs.Length];
+                fs.Read(contentBytes, 0, (int)fs.Length);
             }
-            string szyfrogram = BlowfishEncrypt(contentToEncrypt, sessionKey);
+            //string szyfrogram = BlowfishEncrypt(contentBytes, sessionKey);
             string path = outputDir + "\\" + outputFilename + fileExt;
-            saveToFile(path, szyfrogram);
+            //saveToFile(path, szyfrogram);
+            ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey));
         }
 
         private void buttonDecrypt_Click(object sender, RoutedEventArgs e)
         {
             fileExt = Path.GetExtension(inputFilename);
-            string szyfrogram = "";
+            byte[] contentBytes;
             using (StreamReader sr = File.OpenText(inputFilename))
             {
                 progressBar.Minimum = 1;
@@ -171,44 +164,63 @@ namespace EncryptorDecryptor1
                 }
                 progressBar.Value = 1;
             }
-            using (StreamReader sr = File.OpenText(inputFilename))
+            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                string s = "";
-                while ((s = sr.ReadLine()) != null)
-                {
-                    progressBar.Value++;
-                    szyfrogram += s;
-                }
+                contentBytes = new byte[fs.Length];
+                fs.Read(contentBytes, 0, (int)fs.Length);
             }
             string path = outputDir + "\\" + outputFilename + fileExt;
-            saveToFile(path, BlowfishDecrypt(szyfrogram, sessionKey));            
+            ByteArrayToFile(path, BlowfishDecrypt(contentBytes, sessionKey));           
         }
 
-        private void saveToFile(string path, string szyfrogram)
+        public bool ByteArrayToFile(string fileName, byte[] byteArray)
         {
             try
             {
-                // Delete the file if it exists.
-                if (File.Exists(path))
+                using (var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write))
                 {
-                    File.Delete(path);
-                }
+                    int i = byteArray.Length - 1;
+                    while (byteArray[i] == 0) --i;
 
-                // Create the file.
-                using (FileStream fs = File.Create(path))
-                {
-                    Byte[] info = new UTF8Encoding(true).GetBytes(szyfrogram);
-                    // Add some information to the file.
-                    fs.Write(info, 0, info.Length);
+                    byte[] cleanByteArray = new byte[i + 1];
+                    Array.Copy(byteArray, cleanByteArray, i + 1);
+
+                    fs.Write(cleanByteArray, 0, cleanByteArray.Length);
+                    return true;
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine(ex.ToString());
+                Console.WriteLine("Exception caught in process: {0}", ex);
+                return false;
             }
         }
 
-        public string BlowfishEncrypt(string strValue, string key)
+        //private void saveToFile(string path, string szyfrogram)
+        //{
+        //    try
+        //    {
+        //        // Delete the file if it exists.
+        //        if (File.Exists(path))
+        //        {
+        //            File.Delete(path);
+        //        }
+
+        //        // Create the file.
+        //        using (FileStream fs = File.Create(path))
+        //        {
+        //            Byte[] info = new UTF8Encoding(true).GetBytes(szyfrogram);
+        //            // Add some information to the file.
+        //            fs.Write(info, 0, info.Length);
+        //        }
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        Console.WriteLine(ex.ToString());
+        //    }
+        //}
+
+        public byte[] BlowfishEncrypt(byte[] contentBytes, string key)
         {
             try
             {
@@ -234,23 +246,21 @@ namespace EncryptorDecryptor1
 
                 cipher.Init(true, keyBytes);
 
-                byte[] inB = Encoding.GetBytes(strValue);
+                byte[] outB = new byte[cipher.GetOutputSize(contentBytes.Length)];
 
-                byte[] outB = new byte[cipher.GetOutputSize(inB.Length)];
-
-                int len1 = cipher.ProcessBytes(inB, 0, inB.Length, outB, 0);
+                int len1 = cipher.ProcessBytes(contentBytes, 0, contentBytes.Length, outB, 0);
 
                 cipher.DoFinal(outB, len1);
 
-                return BitConverter.ToString(outB).Replace("-", "");
+                return outB;
             }
             catch (Exception)
             {
-                return "";
+                return null;
             }
         }
 
-        public string BlowfishDecrypt(string name, string keyString)
+        public byte[] BlowfishDecrypt(byte[] contentBytes, string keyString)
         {
             BlowfishEngine engine = new BlowfishEngine();
             PaddedBufferedBlockCipher cipher = null;
@@ -274,43 +284,43 @@ namespace EncryptorDecryptor1
 
             cipher.Init(false, new KeyParameter(Encoding.GetBytes(keyString)));
 
-            byte[] out1 = Hex.Decode(name);
-            byte[] out2 = new byte[cipher.GetOutputSize(out1.Length)]; //tu bylo wczesniej bez dzielenia na 2
+            //byte[] out1 = Hex.Decode(contentBytes);
+            byte[] out2 = new byte[cipher.GetOutputSize(contentBytes.Length)]; //tu bylo wczesniej bez dzielenia na 2
 
-            int len2 = cipher.ProcessBytes(out1, 0, out1.Length, out2, 0);
+            int len2 = cipher.ProcessBytes(contentBytes, 0, contentBytes.Length, out2, 0);
 
             cipher.DoFinal(out2, len2); //Pad block corrupted error happens here
 
-            String s2 = BitConverter.ToString(out2);
+            //String s2 = BitConverter.ToString(out2);
 
-            for (int i = 0; i < s2.Length; i++)
-            {
-                char c = s2[i];
+            //for (int i = 0; i < s2.Length; i++)
+            //{
+            //    char c = s2[i];
                 
-                if (c != 0)
-                {
-                    result.Append(c.ToString());
-                }
-            }
+            //    if (c != 0)
+            //    {
+            //        result.Append(c.ToString());
+            //    }
+            //}
 
-            string resultStr = HexStringToString(result.ToString());
-            return resultStr.Replace("\0", String.Empty); //<- usuwa znaki puste/null
+            //string resultStr = HexStringToString(result.ToString());
+            return out2;
         }
 
-        public string HexStringToString(string hexString)
-        {
-            if (hexString == null)
-            {
-                throw new ArgumentException();
-            }
-            var sb = new StringBuilder();
-            for (var i = 0; i < hexString.Length; i += 3)
-            {
-                var hexChar = hexString.Substring(i, 2);
-                sb.Append((char)Convert.ToByte(hexChar, 16));
-            }
-            return sb.ToString();
-        }
+        //public string HexStringToString(string hexString)
+        //{
+        //    if (hexString == null)
+        //    {
+        //        throw new ArgumentException();
+        //    }
+        //    var sb = new StringBuilder();
+        //    for (var i = 0; i < hexString.Length; i += 3)
+        //    {
+        //        var hexChar = hexString.Substring(i, 2);
+        //        sb.Append((char)Convert.ToByte(hexChar, 16));
+        //    }
+        //    return sb.ToString();
+        //}
 
         public XmlDocument addXmlHeader()
         {
@@ -336,15 +346,15 @@ namespace EncryptorDecryptor1
             return Convert.ToBase64String(randomBytes);
         }
 
-        public static string Utf16ToUtf8(string utf16String)
-{
-    // Get UTF16 bytes and convert UTF16 bytes to UTF8 bytes
-    byte[] utf16Bytes = Encoding.Unicode.GetBytes(utf16String);
-    byte[] utf8Bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, utf16Bytes);
+        //public static string Utf16ToUtf8(string utf16String)
+        //{
+        //    // Get UTF16 bytes and convert UTF16 bytes to UTF8 bytes
+        //    byte[] utf16Bytes = Encoding.Unicode.GetBytes(utf16String);
+        //    byte[] utf8Bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, utf16Bytes);
 
-    // Return UTF8 bytes as ANSI string
-    return Encoding.Default.GetString(utf8Bytes);
-}
+        //    // Return UTF8 bytes as ANSI string
+        //    return Encoding.Default.GetString(utf8Bytes);
+        //}
 
         //public string BlowfishEncryption(string plain, string key, bool fips)
         //{
