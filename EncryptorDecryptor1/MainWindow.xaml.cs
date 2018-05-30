@@ -5,9 +5,11 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Utilities.Encoders;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -20,6 +22,8 @@ namespace EncryptorDecryptor1
     /// </summary>
     public partial class MainWindow : Window
     {
+        BackgroundWorker encryptBgw = new BackgroundWorker();
+        BackgroundWorker decryptBgw = new BackgroundWorker();
         private string inputFilename;
         private string outputFilename;
         private string outputDir;
@@ -123,54 +127,70 @@ namespace EncryptorDecryptor1
 
         private void buttonEncrypt_Click(object sender, RoutedEventArgs e)
         {
-            addXmlHeader();
-            sessionKey = GenerateRandomCryptographicKey(keyLength);
-            fileExt = Path.GetExtension(inputFilename);
-            byte[] contentBytes;
-            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            using (BufferedStream bs = new BufferedStream(fs))
-            using (StreamReader sr = new StreamReader(bs))
-            {
-                progressBar.Minimum = 1;
-                progressBar.Maximum = 1;
-                while (sr.ReadLine() != null)
-                {
-                    progressBar.Maximum += 1;
-                }
-                progressBar.Value = 1;
-            }
-            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            {
-                contentBytes = new byte[fs.Length];
-                fs.Read(contentBytes, 0, (int)fs.Length);
-            }
-            //string szyfrogram = BlowfishEncrypt(contentBytes, sessionKey);
-            string path = outputDir + "\\" + outputFilename + fileExt;
-            //saveToFile(path, szyfrogram);
-            ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey));
+            encryptBgw.DoWork += new DoWorkEventHandler(bgw_startEncryption);
+            encryptBgw.ProgressChanged += new ProgressChangedEventHandler(bgw_progressChanged);
+            encryptBgw.WorkerReportsProgress = true;
+            encryptBgw.RunWorkerAsync();
         }
 
         private void buttonDecrypt_Click(object sender, RoutedEventArgs e)
         {
+            decryptBgw.DoWork += new DoWorkEventHandler(bgw_startDecryption);
+            decryptBgw.ProgressChanged += new ProgressChangedEventHandler(bgw_progressChanged);
+            decryptBgw.WorkerReportsProgress = true;
+            decryptBgw.RunWorkerAsync();       
+        }
+
+        public void bgw_startEncryption(object sender, DoWorkEventArgs e)
+        {
+            addXmlHeader();
+            sessionKey = GenerateRandomCryptographicKey(keyLength);
             fileExt = Path.GetExtension(inputFilename);
             byte[] contentBytes;
-            using (StreamReader sr = File.OpenText(inputFilename))
-            {
-                progressBar.Minimum = 1;
-                progressBar.Maximum = 1;
-                while (sr.ReadLine() != null)
-                {
-                    progressBar.Maximum += 1;
-                }
-                progressBar.Value = 1;
-            }
+
             using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 contentBytes = new byte[fs.Length];
-                fs.Read(contentBytes, 0, (int)fs.Length);
+                byte[] oneByte = new byte[1];
+
+                for (int i = 0; i < fs.Length; i++)
+                {
+                    encryptBgw.ReportProgress((i * 100) / (int)fs.Length);
+                    fs.Read(contentBytes, i, 1);
+                }
+                encryptBgw.ReportProgress(100);
+
+                //contentBytes += fs.ReadByte();
+                //fs.Read(contentBytes, 0, (int)fs.Length);
             }
             string path = outputDir + "\\" + outputFilename + fileExt;
-            ByteArrayToFile(path, BlowfishDecrypt(contentBytes, sessionKey));           
+            ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey));
+        }
+
+        public void bgw_startDecryption(object sender, DoWorkEventArgs e)
+        {
+            fileExt = Path.GetExtension(inputFilename);
+            byte[] contentBytes;
+
+            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            {
+                contentBytes = new byte[fs.Length];
+                byte[] oneByte = new byte[1];
+
+                for (int i = 0; i < fs.Length; i++)
+                {
+                    decryptBgw.ReportProgress((i * 100) / (int)fs.Length);
+                    fs.Read(contentBytes, i, 1);
+                }
+                decryptBgw.ReportProgress(100);
+            }
+            string path = outputDir + "\\" + outputFilename + fileExt;
+            ByteArrayToFile(path, BlowfishDecrypt(contentBytes, sessionKey));
+        }
+
+        public void bgw_progressChanged(object sender, ProgressChangedEventArgs e)
+        {
+            progressBar.Value = e.ProgressPercentage;
         }
 
         public bool ByteArrayToFile(string fileName, byte[] byteArray)
