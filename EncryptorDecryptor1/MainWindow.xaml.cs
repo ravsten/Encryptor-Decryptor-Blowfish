@@ -6,10 +6,12 @@ using Org.BouncyCastle.Utilities.Encoders;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
+using System.Xml;
 
 namespace EncryptorDecryptor1
 {
@@ -21,11 +23,14 @@ namespace EncryptorDecryptor1
         private string inputFilename;
         private string outputFilename;
         private string outputDir;
+        private string fileExt;
         private int encryptTypeIndex;
         private readonly string[] encryptTypes = { "ECB", "CBC", "CFB", "OFB" };
         private List<string> senderOrReceivers = new List<string>();
         static readonly Encoding Encoding = Encoding.UTF8;
         private int blockSize = 0;
+        private readonly int keyLength = 448;
+        private string sessionKey; //do usunięcia po testowaniu
 
         public MainWindow()
         {
@@ -118,24 +123,65 @@ namespace EncryptorDecryptor1
 
         private void buttonEncrypt_Click(object sender, RoutedEventArgs e)
         {
-            string szyfrogram = BlowfishEncrypt("test", "abc");
-            string path = outputDir + "\\" + outputFilename;
+            addXmlHeader();
+            sessionKey = GenerateRandomCryptographicKey(keyLength);
+            fileExt = Path.GetExtension(inputFilename);
+            string contentToEncrypt = "";
+            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (BufferedStream bs = new BufferedStream(fs))
+            using (StreamReader sr = new StreamReader(bs))
+            {
+                progressBar.Minimum = 1;
+                progressBar.Maximum = 1;
+                while (sr.ReadLine() != null)
+                {
+                    progressBar.Maximum += 1;
+                }
+                progressBar.Value = 1;
+            }
+            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            using (BufferedStream bs = new BufferedStream(fs))
+            using (StreamReader sr = new StreamReader(bs))
+            {
+                string s = "";
+                while ((s = sr.ReadLine()) != null)
+                {
+                    progressBar.Value++;
+                    Console.WriteLine(progressBar.Value);
+                    contentToEncrypt += s;
+                    if (!sr.EndOfStream) contentToEncrypt += Environment.NewLine;
+                }
+            }
+            string szyfrogram = BlowfishEncrypt(contentToEncrypt, sessionKey);
+            string path = outputDir + "\\" + outputFilename + fileExt;
             saveToFile(path, szyfrogram);
         }
 
         private void buttonDecrypt_Click(object sender, RoutedEventArgs e)
         {
+            fileExt = Path.GetExtension(inputFilename);
             string szyfrogram = "";
+            using (StreamReader sr = File.OpenText(inputFilename))
+            {
+                progressBar.Minimum = 1;
+                progressBar.Maximum = 1;
+                while (sr.ReadLine() != null)
+                {
+                    progressBar.Maximum += 1;
+                }
+                progressBar.Value = 1;
+            }
             using (StreamReader sr = File.OpenText(inputFilename))
             {
                 string s = "";
                 while ((s = sr.ReadLine()) != null)
                 {
+                    progressBar.Value++;
                     szyfrogram += s;
                 }
             }
-            string path = outputDir + "\\" + outputFilename;
-            saveToFile(path, BlowfishDecrypt(szyfrogram, "abc"));            
+            string path = outputDir + "\\" + outputFilename + fileExt;
+            saveToFile(path, BlowfishDecrypt(szyfrogram, sessionKey));            
         }
 
         private void saveToFile(string path, string szyfrogram)
@@ -229,7 +275,7 @@ namespace EncryptorDecryptor1
             cipher.Init(false, new KeyParameter(Encoding.GetBytes(keyString)));
 
             byte[] out1 = Hex.Decode(name);
-            byte[] out2 = new byte[cipher.GetOutputSize(out1.Length)/2]; //tu bylo wczesniej bez dzielenia na 2
+            byte[] out2 = new byte[cipher.GetOutputSize(out1.Length)]; //tu bylo wczesniej bez dzielenia na 2
 
             int len2 = cipher.ProcessBytes(out1, 0, out1.Length, out2, 0);
 
@@ -247,11 +293,11 @@ namespace EncryptorDecryptor1
                 }
             }
 
-            return HexStringToString(result.ToString());
-
+            string resultStr = HexStringToString(result.ToString());
+            return resultStr.Replace("\0", String.Empty); //<- usuwa znaki puste/null
         }
 
-        string HexStringToString(string hexString)
+        public string HexStringToString(string hexString)
         {
             if (hexString == null)
             {
@@ -265,6 +311,40 @@ namespace EncryptorDecryptor1
             }
             return sb.ToString();
         }
+
+        public XmlDocument addXmlHeader()
+        {
+            XmlDocument doc = new XmlDocument();
+
+            XmlNode declaration = doc.CreateXmlDeclaration("1.0", "UTF-8", "yes");
+            doc.AppendChild(declaration);
+
+            XmlElement header = (XmlElement)doc.AppendChild(doc.CreateElement("EncryptedFileHeader"));
+
+            XmlElement algorithm = (XmlElement)header.AppendChild(doc.CreateElement("Algorithm"));
+            algorithm.InnerText = encryptTypes[encryptTypeIndex];
+
+            doc.Save("C:\\Users\\r_ste_000\\Desktop\\doc.xml");
+            return doc;
+        }
+
+        public string GenerateRandomCryptographicKey(int keyLength)
+        {
+            RNGCryptoServiceProvider rngCryptoServiceProvider = new RNGCryptoServiceProvider();
+            byte[] randomBytes = new byte[keyLength];
+            rngCryptoServiceProvider.GetBytes(randomBytes);
+            return Convert.ToBase64String(randomBytes);
+        }
+
+        public static string Utf16ToUtf8(string utf16String)
+{
+    // Get UTF16 bytes and convert UTF16 bytes to UTF8 bytes
+    byte[] utf16Bytes = Encoding.Unicode.GetBytes(utf16String);
+    byte[] utf8Bytes = Encoding.Convert(Encoding.Unicode, Encoding.UTF8, utf16Bytes);
+
+    // Return UTF8 bytes as ANSI string
+    return Encoding.Default.GetString(utf8Bytes);
+}
 
         //public string BlowfishEncryption(string plain, string key, bool fips)
         //{
