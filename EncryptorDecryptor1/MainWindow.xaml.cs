@@ -25,8 +25,8 @@ namespace EncryptorDecryptor1
     {
         BackgroundWorker encryptBgw = new BackgroundWorker();
         BackgroundWorker decryptBgw = new BackgroundWorker();
-        private string publicKeysPath;
-        private string privateKeysPath;
+        public static readonly string publicKeysPath = "C:\\Users\\r_ste_000\\Documents\\PG_6sem\\bsk\\EncryptorDecryptor1\\public-keys";
+        public static readonly string privateKeysPath = "C:\\Users\\r_ste_000\\Documents\\PG_6sem\\bsk\\EncryptorDecryptor1\\private-keys";
         private string inputFilename;
         private string outputFilename;
         private string outputDir;
@@ -50,13 +50,13 @@ namespace EncryptorDecryptor1
 
             loadUsers();
 
-            allUsers.Add(new User("adam@wp.pl"));
-            allUsers.Add(new User("beata@gmail.com"));
-            allUsers.Add(new User("cyryl@onet.pl"));
-            foreach (User u in allUsers)
-            {
-                allUsersGUI.Add(u.Email);
-            }
+            //allUsers.Add(new User("adam@wp.pl"));
+            //allUsers.Add(new User("beata@gmail.com"));
+            //allUsers.Add(new User("cyryl@onet.pl"));
+            //foreach (User u in allUsers)
+            //{
+            //    allUsersGUI.Add(u.Email);
+            //}
             listView.ItemsSource = allUsersGUI;
 
             textBoxBlockSize.IsEnabled = false;
@@ -508,7 +508,18 @@ namespace EncryptorDecryptor1
 
         public void loadUsers()
         {
-
+            foreach (string file in Directory.EnumerateFiles(publicKeysPath, "*.txt"))
+            {
+                User newUser = new User(Path.GetFileNameWithoutExtension(file), File.ReadAllText(file));
+                allUsers.Add(newUser);
+                allUsersGUI.Add(newUser.Email);
+                listView.Items.Refresh();
+            }
+            foreach (string file in Directory.EnumerateFiles(privateKeysPath, "*.txt"))
+            {
+                User foundUser = allUsers.Find(user => user.Email.Equals(Path.GetFileNameWithoutExtension(file)));
+                foundUser.privateKey = File.ReadAllText(file);
+            }
         }
     }
 }
