@@ -207,6 +207,9 @@ namespace EncryptorDecryptor1
             fileExt = Path.GetExtension(inputFilename);
             byte[] contentBytes;
 
+            //pobranie parametrow z naglowka xml
+            //to do!
+
             using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 contentBytes = new byte[fs.Length];
@@ -412,6 +415,7 @@ namespace EncryptorDecryptor1
                 xmlUserEmail.InnerText = user.Email;
                 XmlElement xmlUserSessionKey = (XmlElement)xmlUser.AppendChild(doc.CreateElement("SessionKey"));
                 xmlUserSessionKey.InnerText = user.encryptSessionKey(sessionKey);
+                user.decryptSessionKey(xmlUserSessionKey.InnerText);
             }
 
             doc.Save(path);
