@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
@@ -9,9 +10,9 @@ namespace EncryptorDecryptor1
 {
     class User
     {
-        public string Email { get; }
-        public string publicKey { get; }
-        public string privateKey { get; }
+        public string Email { get; set; }
+        public string publicKey { get; set; }
+        public string privateKey { get; set; }
         RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
 
         public User(string Email)
@@ -19,7 +20,24 @@ namespace EncryptorDecryptor1
             this.Email = Email;
             this.publicKey = rsa.ToXmlString(false);
             this.privateKey = rsa.ToXmlString(true);
-            //RSAParameters RSAKeyInfo = rsa.ExportParameters(true);
+
+            //zapisz klucze nowego uzytkownika na dysku
+            using (FileStream fs = File.Create(MainWindow.publicKeysPath + "\\" + Email + ".txt"))
+            {
+                Byte[] info = new UTF8Encoding(true).GetBytes(publicKey);
+                fs.Write(info, 0, info.Length);
+            }
+            using (FileStream fs = File.Create(MainWindow.privateKeysPath + "\\" + Email + ".txt"))
+            {
+                Byte[] info = new UTF8Encoding(true).GetBytes(privateKey);
+                fs.Write(info, 0, info.Length);
+            }
+        }
+
+        public User(string Email, string publicKey)
+        {
+            this.Email = Email;
+            this.publicKey = publicKey;
         }
 
         public string encryptSessionKey(string sessionKey)
