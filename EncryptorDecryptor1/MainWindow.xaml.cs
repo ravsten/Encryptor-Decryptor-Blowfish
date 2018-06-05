@@ -14,6 +14,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
 using System.Xml;
+using System.Xml.Linq;
 
 namespace EncryptorDecryptor1
 {
@@ -24,6 +25,8 @@ namespace EncryptorDecryptor1
     {
         BackgroundWorker encryptBgw = new BackgroundWorker();
         BackgroundWorker decryptBgw = new BackgroundWorker();
+        private string publicKeysPath;
+        private string privateKeysPath;
         private string inputFilename;
         private string outputFilename;
         private string outputDir;
@@ -36,7 +39,7 @@ namespace EncryptorDecryptor1
         private List<string> senderOrReceivers = new List<string>();
         static readonly Encoding Encoding = Encoding.UTF8;
         private int blockSize = 0;
-        private readonly int keyLength = 448;
+        private int keyLength = 448;
         private string sessionKey; //do usunięcia po testowaniu
 
         /*KONSTRUKTOR*/
@@ -44,6 +47,8 @@ namespace EncryptorDecryptor1
         {
             InitializeComponent();
             this.Title = "Encryptor/Decryptor 0.1";
+
+            loadUsers();
 
             allUsers.Add(new User("adam@wp.pl"));
             allUsers.Add(new User("beata@gmail.com"));
@@ -198,32 +203,56 @@ namespace EncryptorDecryptor1
                 //fs.Read(contentBytes, 0, (int)fs.Length);
             }
             string path = outputDir + "\\" + outputFilename + fileExt;
-            addXmlHeader(path);
-            ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey));
+
+            byte[] encryptedData = BlowfishEncrypt(contentBytes, sessionKey);
+            saveWithXmlHeader(path, Convert.ToBase64String(encryptedData));
+            //ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey), true);
         }
 
         public void bgw_startDecryption(object sender, DoWorkEventArgs e)
         {
             fileExt = Path.GetExtension(inputFilename);
-            byte[] contentBytes;
+            //byte[] contentBytes;
 
             //pobranie parametrow z naglowka xml
-            //to do!
+            XElement header = XElement.Load(inputFilename);
+            Int32.TryParse(header.Element("KeySize").Value, out keyLength);
+            Int32.TryParse(header.Element("BlockSize").Value, out blockSize);
+            string cipherMode = header.Element("CipherMode").Value;
+            XElement approvedUsers = header.Element("ApprovedUsers");
 
-            using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            bool isCurrentUserApproved = false;
+            foreach (var u in approvedUsers.Elements("User"))
             {
-                contentBytes = new byte[fs.Length];
-                byte[] oneByte = new byte[1];
-
-                for (int i = 0; i < fs.Length; i++)
+                string userEmail = u.Element("Email").Value;
+                if (userEmail == senderOrReceivers[0])
                 {
-                    decryptBgw.ReportProgress((i * 100) / (int)fs.Length);
-                    fs.Read(contentBytes, i, 1);
+                    isCurrentUserApproved = true;
+                    string userEncSessKey = u.Element("SessionKey").Value;
+                    User currUser = allUsers.Find(user => user.Email.Equals(userEmail));
+                    sessionKey = currUser.decryptSessionKey(userEncSessKey);
+                    break;
                 }
-                decryptBgw.ReportProgress(100);
             }
+            if (!isCurrentUserApproved) return; //uzytkownik nie jest uprawniony do odszyfrowania tego pliku
+
+            string encryptedData = header.Element("EncryptedData").Value;
+            byte[] dataToDecrypt = Convert.FromBase64String(encryptedData);
+
+            //using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+            //{
+            //    contentBytes = new byte[fs.Length];
+            //    byte[] oneByte = new byte[1];
+
+            //    for (int i = 0; i < fs.Length; i++)
+            //    {
+            //        decryptBgw.ReportProgress((i * 100) / (int)fs.Length);
+            //        fs.Read(contentBytes, i, 1);
+            //    }
+            //    decryptBgw.ReportProgress(100);
+            //}
             string path = outputDir + "\\" + outputFilename + fileExt;
-            ByteArrayToFile(path, BlowfishDecrypt(contentBytes, sessionKey));
+            ByteArrayToFile(path, BlowfishDecrypt(dataToDecrypt, sessionKey, cipherMode), false);
         }
 
         public void bgw_progressChanged(object sender, ProgressChangedEventArgs e)
@@ -231,7 +260,7 @@ namespace EncryptorDecryptor1
             progressBar.Value = e.ProgressPercentage;
         }
 
-        public bool ByteArrayToFile(string fileName, byte[] byteArray)
+        public bool ByteArrayToFile(string fileName, byte[] byteArray, bool isHeaderAppended)
         {
             try
             {
@@ -243,7 +272,26 @@ namespace EncryptorDecryptor1
                     byte[] cleanByteArray = new byte[i + 1];
                     Array.Copy(byteArray, cleanByteArray, i + 1);
 
-                    fs.Write(cleanByteArray, 0, cleanByteArray.Length);
+                    if (isHeaderAppended)
+                    {
+                        byte[] newline = Encoding.UTF8.GetBytes(Environment.NewLine);
+                        fs.Write(newline, 0, newline.Length);
+                        //XmlDocument doc = new XmlDocument();
+                        //XmlElement encData = (XmlElement)doc.AppendChild(doc.CreateElement("EncryptedData"));
+                        //encData.InnerText = cleanByteArray;
+                        byte[] encDataOpening = Encoding.UTF8.GetBytes("<EncryptedData>");
+                        fs.Write(encDataOpening, 0, encDataOpening.Length);
+
+                        fs.Write(cleanByteArray, 0, cleanByteArray.Length);
+
+                        byte[] encDataClosing = Encoding.UTF8.GetBytes("</EncryptedData>");
+                        fs.Write(encDataClosing, 0, encDataClosing.Length);
+                    }
+                    else
+                    {
+                        fs.Write(cleanByteArray, 0, cleanByteArray.Length);
+                    }
+                    
                     return true;
                 }
             }
@@ -318,11 +366,11 @@ namespace EncryptorDecryptor1
             }
         }
 
-        public byte[] BlowfishDecrypt(byte[] contentBytes, string keyString)
+        public byte[] BlowfishDecrypt(byte[] contentBytes, string keyString, string cipherMode)
         {
             BlowfishEngine engine = new BlowfishEngine();
             PaddedBufferedBlockCipher cipher = null;
-            switch (encryptTypes[encryptTypeIndex])
+            switch (cipherMode)
             {
                 case "ECB":
                     cipher = new PaddedBufferedBlockCipher(engine);
@@ -380,7 +428,7 @@ namespace EncryptorDecryptor1
         //    return sb.ToString();
         //}
 
-        public XmlDocument addXmlHeader(string path)
+        public XmlDocument saveWithXmlHeader(string path, string encData)
         {
             XmlDocument doc = new XmlDocument();
 
@@ -418,6 +466,9 @@ namespace EncryptorDecryptor1
                 user.decryptSessionKey(xmlUserSessionKey.InnerText);
             }
 
+            XmlElement xmlEncData = (XmlElement)header.AppendChild(doc.CreateElement("EncryptedData"));
+            xmlEncData.InnerText = encData; // Encoding.GetString(encData);
+
             doc.Save(path);
             return doc;
         }
@@ -454,5 +505,10 @@ namespace EncryptorDecryptor1
         //    bcEngine.SetPadding(_padding);
         //    return bcEngine.Decrypt(cipher, key);
         //}
+
+        public void loadUsers()
+        {
+
+        }
     }
 }
