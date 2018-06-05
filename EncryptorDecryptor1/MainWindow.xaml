@@ -21,6 +21,11 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
+                    <Rectangle Fill="#FFF4F4F5" Stroke="Black" Margin="101,10,10,143" Grid.Column="1"/>
+                    <Label x:Name="label8" Content="Nowy użytkownik" Grid.Column="1" HorizontalAlignment="Left" Margin="211,10,0,0" VerticalAlignment="Top"/>
+                    <Label x:Name="label9" Content="Email" Grid.Column="1" HorizontalAlignment="Left" Margin="172,48,0,0" VerticalAlignment="Top"/>
+                    <Button x:Name="buttonNewUser" Content="Utwórz" Grid.Column="1" HorizontalAlignment="Left" Margin="224,94,0,0" VerticalAlignment="Top" Width="75" Click="buttonNewUser_Click"/>
+                    <TextBox x:Name="textBoxNewUser" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="233,48,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
 
                 </Grid>
             </TabItem>

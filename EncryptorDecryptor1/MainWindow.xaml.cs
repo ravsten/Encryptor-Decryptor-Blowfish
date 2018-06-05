@@ -28,24 +28,58 @@ namespace EncryptorDecryptor1
         private string outputFilename;
         private string outputDir;
         private string fileExt;
+        private string algName = "Blowfish";
         private int encryptTypeIndex;
         private readonly string[] encryptTypes = { "ECB", "CBC", "CFB", "OFB" };
+        private List<User> allUsers = new List<User>();
+        private List<string> allUsersGUI = new List<string>();
         private List<string> senderOrReceivers = new List<string>();
         static readonly Encoding Encoding = Encoding.UTF8;
         private int blockSize = 0;
         private readonly int keyLength = 448;
         private string sessionKey; //do usunięcia po testowaniu
 
+        /*KONSTRUKTOR*/
         public MainWindow()
         {
             InitializeComponent();
             this.Title = "Encryptor/Decryptor 0.1";
-            List<string> items = new List<string>();
-            items.Add("Adam");
-            items.Add("Beata");
-            items.Add("Cyryl");
-            listView.ItemsSource = items;
+
+            allUsers.Add(new User("adam@wp.pl"));
+            allUsers.Add(new User("beata@gmail.com"));
+            allUsers.Add(new User("cyryl@onet.pl"));
+            foreach (User u in allUsers)
+            {
+                allUsersGUI.Add(u.Email);
+            }
+            listView.ItemsSource = allUsersGUI;
+
             textBoxBlockSize.IsEnabled = false;
+        }
+
+        /*OBSLUGA INTERFEJSU*/
+        private void buttonNewUser_Click(object sender, RoutedEventArgs e)
+        {
+            bool suchUserAlreadyExists = false;
+            foreach(User u in allUsers)
+            {
+                if (u.Email == textBoxNewUser.Text)
+                {
+                    suchUserAlreadyExists = true;
+                    break;
+                }
+            }
+            if (!suchUserAlreadyExists)
+            {
+                User newUser = new User(textBoxNewUser.Text);
+                allUsers.Add(newUser);
+                allUsersGUI.Add(newUser.Email);
+                listView.Items.Refresh();
+            }
+            else
+            {
+                MessageBox.Show("Taki użytkownik już istnieje", "Uwaga", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private void listView_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -125,6 +159,7 @@ namespace EncryptorDecryptor1
             Int32.TryParse(blockSizeTextBox.Text, out blockSize);
         }
 
+        /*ENCRYPTION, DECRYPTION*/
         private void buttonEncrypt_Click(object sender, RoutedEventArgs e)
         {
             encryptBgw.DoWork += new DoWorkEventHandler(bgw_startEncryption);
@@ -143,7 +178,6 @@ namespace EncryptorDecryptor1
 
         public void bgw_startEncryption(object sender, DoWorkEventArgs e)
         {
-            addXmlHeader();
             sessionKey = GenerateRandomCryptographicKey(keyLength);
             fileExt = Path.GetExtension(inputFilename);
             byte[] contentBytes;
@@ -164,6 +198,7 @@ namespace EncryptorDecryptor1
                 //fs.Read(contentBytes, 0, (int)fs.Length);
             }
             string path = outputDir + "\\" + outputFilename + fileExt;
+            addXmlHeader(path);
             ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey));
         }
 
@@ -197,7 +232,7 @@ namespace EncryptorDecryptor1
         {
             try
             {
-                using (var fs = new FileStream(fileName, FileMode.Create, FileAccess.Write))
+                using (var fs = new FileStream(fileName, FileMode.Append, FileAccess.Write))
                 {
                     int i = byteArray.Length - 1;
                     while (byteArray[i] == 0) --i;
@@ -342,7 +377,7 @@ namespace EncryptorDecryptor1
         //    return sb.ToString();
         //}
 
-        public XmlDocument addXmlHeader()
+        public XmlDocument addXmlHeader(string path)
         {
             XmlDocument doc = new XmlDocument();
 
@@ -351,18 +386,44 @@ namespace EncryptorDecryptor1
 
             XmlElement header = (XmlElement)doc.AppendChild(doc.CreateElement("EncryptedFileHeader"));
 
-            XmlElement algorithm = (XmlElement)header.AppendChild(doc.CreateElement("Algorithm"));
-            algorithm.InnerText = encryptTypes[encryptTypeIndex];
+            XmlElement xmlAlgorithm = (XmlElement)header.AppendChild(doc.CreateElement("Algorithm"));
+            xmlAlgorithm.InnerText = algName;
 
-            doc.Save("C:\\Users\\r_ste_000\\Desktop\\doc.xml");
+            XmlElement xmlKeySize = (XmlElement)header.AppendChild(doc.CreateElement("KeySize"));
+            xmlKeySize.InnerText = keyLength.ToString();
+
+            XmlElement xmlBlockSize = (XmlElement)header.AppendChild(doc.CreateElement("BlockSize"));
+            xmlBlockSize.InnerText = blockSize.ToString();
+
+            XmlElement xmlCipherMode = (XmlElement)header.AppendChild(doc.CreateElement("CipherMode"));
+            xmlCipherMode.InnerText = encryptTypes[encryptTypeIndex];
+
+            XmlElement xmlApprovedUsers = (XmlElement)header.AppendChild(doc.CreateElement("ApprovedUsers"));
+            foreach (var userName in senderOrReceivers)
+            {
+                User user = null;
+                foreach (var u in allUsers)
+                {
+                    if (u.Email.Equals(userName)) user = u;
+                }
+
+                XmlElement xmlUser = (XmlElement)xmlApprovedUsers.AppendChild(doc.CreateElement("User"));
+                XmlElement xmlUserEmail = (XmlElement)xmlUser.AppendChild(doc.CreateElement("Email"));
+                xmlUserEmail.InnerText = user.Email;
+                XmlElement xmlUserSessionKey = (XmlElement)xmlUser.AppendChild(doc.CreateElement("SessionKey"));
+                xmlUserSessionKey.InnerText = user.encryptSessionKey(sessionKey);
+            }
+
+            doc.Save(path);
             return doc;
         }
 
-        public string GenerateRandomCryptographicKey(int keyLength)
+        public string GenerateRandomCryptographicKey(int keyLengthInBits)
         {
             RNGCryptoServiceProvider rngCryptoServiceProvider = new RNGCryptoServiceProvider();
-            byte[] randomBytes = new byte[keyLength];
+            byte[] randomBytes = new byte[keyLengthInBits/8];
             rngCryptoServiceProvider.GetBytes(randomBytes);
+            rngCryptoServiceProvider.Dispose();
             return Convert.ToBase64String(randomBytes);
         }
 
