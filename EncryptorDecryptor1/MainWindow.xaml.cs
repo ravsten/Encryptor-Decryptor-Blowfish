@@ -8,6 +8,7 @@ using System.ComponentModel;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -84,6 +85,20 @@ namespace EncryptorDecryptor1
                 //if there was no such Email yet
                 if (!suchUserAlreadyExists)
                 {
+                    //check if password is strong enough
+                    bool isPwdStrong = true;
+                    string pwd = textBoxPassword.Text;
+                    if (pwd.Length < 8) isPwdStrong = false;
+                    if (!Regex.IsMatch(pwd, @"[A-Z]+")) isPwdStrong = false;
+                    if (!Regex.IsMatch(pwd, @"\d+")) isPwdStrong = false;
+                    if (!Regex.IsMatch(pwd, @".[!,@,#,$,%,^,&,*,?,_,~,-,£,(,)]+")) isPwdStrong = false;
+                    if (!isPwdStrong)
+                    {
+                        MessageBox.Show("Hasło powinno zawierać\nco najmniej 8 znaków\nco najmniej jedna wielką literę\nco najmniej jedną cyfrę\nco najmniej jeden znak specjalny", 
+                            "Uwaga", MessageBoxButton.OK, MessageBoxImage.Warning);
+                        return;
+                    }
+
                     User newUser = new User(textBoxNewUser.Text);
                     newUser.password = textBoxPassword.Text;
                     newUser.saveKeysToFiles();
