@@ -17,6 +17,7 @@ namespace EncryptorDecryptor1
         private byte[] encPrivateKey;
         RSACryptoServiceProvider rsa = new RSACryptoServiceProvider();
 
+        //constructor for new user
         public User(string Email)
         {
             this.Email = Email;
@@ -24,6 +25,7 @@ namespace EncryptorDecryptor1
             this.privateKey = rsa.ToXmlString(true);
         }
 
+        //constructor for existing user with saved keys in files
         public User(string Email, byte[] encPrivateKey)
         {
             this.Email = Email;
@@ -34,10 +36,10 @@ namespace EncryptorDecryptor1
         {
             byte[] toEncryptData = Encoding.UTF8.GetBytes(sessionKey);
 
+            //encrypt session key with public key
             RSACryptoServiceProvider rsaPublic = new RSACryptoServiceProvider();
             rsaPublic.FromXmlString(publicKey);
             byte[] encryptedRSA = rsaPublic.Encrypt(toEncryptData, false);
-            //string EncryptedResult = Encoding.Default.GetString(encryptedRSA);
             string EncryptedResult = Convert.ToBase64String(encryptedRSA);
 
             return EncryptedResult;
@@ -45,9 +47,9 @@ namespace EncryptorDecryptor1
 
         public string decryptSessionKey(string encSessionKey)
         {
-            //byte[] toDecryptData = Encoding.UTF8.GetBytes(encSessionKey);
             byte[] toDecryptData = Convert.FromBase64String(encSessionKey);
 
+            //decrypt session key with previously decrypted private key
             RSACryptoServiceProvider rsaPrivate = new RSACryptoServiceProvider();
             rsaPrivate.FromXmlString(privateKey);
             byte[] decryptedRSA = rsaPrivate.Decrypt(toDecryptData, false);
@@ -58,6 +60,7 @@ namespace EncryptorDecryptor1
 
         public string computeSha256Hash(string rawPass)
         { 
+            //hash user password using SHA-256
             using (SHA256 sha256Hash = SHA256.Create())
             {  
                 byte[] bytes = sha256Hash.ComputeHash(Encoding.UTF8.GetBytes(rawPass));
@@ -73,7 +76,7 @@ namespace EncryptorDecryptor1
 
         public void saveKeysToFiles()
         {
-            //zapisz klucze nowego uzytkownika na dysku
+            //save keys of a new user to files
             using (FileStream fs = File.Create(MainWindow.publicKeysPath + "\\" + Email + ".txt"))
             {
                 Byte[] info = new UTF8Encoding(true).GetBytes(publicKey);
@@ -99,6 +102,7 @@ namespace EncryptorDecryptor1
 
         public void decryptPrivateKey(string keyString)
         {
+            //decrypt private key with key = user password hashed with SHA-256
             BlowfishEngine engine = new BlowfishEngine();
             PaddedBufferedBlockCipher cipher = new PaddedBufferedBlockCipher(engine);
             StringBuilder result = new StringBuilder();
