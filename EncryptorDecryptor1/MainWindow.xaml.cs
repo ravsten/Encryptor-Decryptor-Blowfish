@@ -52,15 +52,8 @@ namespace EncryptorDecryptor1
 
             loadUsers();
 
-            //allUsers.Add(new User("adam@wp.pl"));
-            //allUsers.Add(new User("beata@gmail.com"));
-            //allUsers.Add(new User("cyryl@onet.pl"));
-            //foreach (User u in allUsers)
-            //{
-            //    allUsersGUI.Add(u.Email);
-            //}
+            //set startup parameters for GUI elements
             listView.ItemsSource = allUsersGUI;
-
             textBoxBlockSize.IsEnabled = false;
             buttonBlockSize.IsEnabled = false;
         }
@@ -68,6 +61,7 @@ namespace EncryptorDecryptor1
         /*USER INTERFACE INTERACTION*/
         private void buttonNewUser_Click(object sender, RoutedEventArgs e)
         {
+            //if Email or password box was not filled
             if (textBoxNewUser.Text == "" || textBoxPassword.Text == "")
             {
                 MessageBox.Show("Podaj email i hasło!",
@@ -77,6 +71,7 @@ namespace EncryptorDecryptor1
             }
             else
             {
+                //check if user with this Email already exists
                 bool suchUserAlreadyExists = false;
                 foreach (User u in allUsers)
                 {
@@ -86,6 +81,7 @@ namespace EncryptorDecryptor1
                         break;
                     }
                 }
+                //if there was no such Email yet
                 if (!suchUserAlreadyExists)
                 {
                     User newUser = new User(textBoxNewUser.Text);
@@ -98,6 +94,7 @@ namespace EncryptorDecryptor1
                     textBoxNewUser.Clear();
                     textBoxPassword.Clear();
                 }
+                //if there is a user with such email
                 else
                 {
                     MessageBox.Show("Taki użytkownik już istnieje", "Uwaga", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -107,10 +104,12 @@ namespace EncryptorDecryptor1
 
         private void listView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            //add selected users to senderOrReceivers list
             foreach (var remItem in e.RemovedItems)
             {
                 senderOrReceivers.Remove(remItem.ToString());
             }
+            //remove unselected users from senderOrReceivers list
             foreach (var addItem in e.AddedItems)
             {
                 senderOrReceivers.Add(addItem.ToString());
@@ -119,20 +118,14 @@ namespace EncryptorDecryptor1
 
         private void buttonFilePicker_Click(object sender, RoutedEventArgs e)
         {
-            // Create OpenFileDialog 
+            //create file dialog 
             Microsoft.Win32.OpenFileDialog dlg = new Microsoft.Win32.OpenFileDialog();
-
-            // Set filter for file extension and default file extension 
-            //dlg.DefaultExt = ".txt";
-            //dlg.Filter = "JPEG Files (*.jpeg)|*.jpeg|PNG Files (*.png)|*.png|JPG Files (*.jpg)|*.jpg|GIF Files (*.gif)|*.gif";
-
-            // Display OpenFileDialog by calling ShowDialog method 
             Nullable<bool> result = dlg.ShowDialog();
 
-            // Get the selected file name and display in a TextBox 
+            //if a file was selected
             if (result.HasValue && result.Value)
             {
-                // Open document 
+                //assign filename to global var
                 inputFilename = dlg.FileName;
                 labelPickedFile.Content = inputFilename;
             }
@@ -140,21 +133,21 @@ namespace EncryptorDecryptor1
 
         private void buttonApplyOutputFilename_Click(object sender, RoutedEventArgs e)
         {
+            //set outputFilename var to text from textbox
             outputFilename = textboxOutputFilename.Text;
             labelOutputFilename.Content = outputFilename;
         }
 
         private void buttonDirPicker_Click(object sender, RoutedEventArgs e)
         {
-            // Create OpenFileDialog 
+            //create folder dialog
             System.Windows.Forms.FolderBrowserDialog dlg = new System.Windows.Forms.FolderBrowserDialog();
-
-            // Display OpenFileDialog by calling ShowDialog method 
             System.Windows.Forms.DialogResult result = dlg.ShowDialog();
 
-            // Get the selected file name and display in a TextBox 
+            //if a folder=directory was selected 
             if (result == System.Windows.Forms.DialogResult.OK)
             {
+                //assign directory to global var
                 outputDir = dlg.SelectedPath;
                 labelPickedDir.Content = outputDir;
             }
@@ -162,16 +155,21 @@ namespace EncryptorDecryptor1
 
         private void comboBoxEncryptType_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
+            //get index of option from a list
             encryptTypeIndex = comboBoxEncryptType.SelectedIndex;
+
+            //if a user chose CFB or OFB cipher block
             if (encryptTypes[encryptTypeIndex] == "CFB"
                 || encryptTypes[encryptTypeIndex] == "OFB")
             {
+                //let user input custom block size
                 textBoxBlockSize.IsEnabled = true;
                 buttonBlockSize.IsEnabled = true;
                 label7.Foreground = Brushes.Black;
             }
             else
             {
+                //block block size textbox
                 textBoxBlockSize.IsEnabled = false;
                 buttonBlockSize.IsEnabled = false;
                 label7.Foreground = Brushes.Red;
@@ -180,8 +178,11 @@ namespace EncryptorDecryptor1
 
         private void buttonBlockSize_Click(object sender, RoutedEventArgs e)
         {
+            //get block size from textbox
             ulong inputBlockSize;
             ulong.TryParse(textBoxBlockSize.Text, out inputBlockSize);
+
+            //check if block size is not bigger than maximum default block size
             if (inputBlockSize > maxBlockSize)
             {
                 MessageBox.Show("Wielkość bloku nie może przekraczać 64 bitów!",
@@ -190,6 +191,7 @@ namespace EncryptorDecryptor1
                     MessageBoxImage.Warning);
                 textBoxBlockSize.Clear();
             }
+            //check if block size is power of 2 or multiple of 8 
             else if (!(isPowerOfTwo(inputBlockSize) || inputBlockSize % 8 == 0))
             {
                 MessageBox.Show("Podana wielkość bloku nie jest potęgą liczby 2,\nani wielokrotnością bajtu!",
@@ -198,6 +200,7 @@ namespace EncryptorDecryptor1
                     MessageBoxImage.Warning);
                 textBoxBlockSize.Clear();
             }
+            //if everything is fine
             else blockSize = (int)inputBlockSize;
         }
 
@@ -206,9 +209,26 @@ namespace EncryptorDecryptor1
             return (x != 0) && ((x & (x - 1)) == 0);
         }
 
+        public void loadUsers()
+        {
+            foreach (string file in Directory.EnumerateFiles(privateKeysPath, "*.txt"))
+            {
+                User newUser = new User(Path.GetFileNameWithoutExtension(file), File.ReadAllBytes(file));
+                allUsers.Add(newUser);
+                allUsersGUI.Add(newUser.Email);
+                listView.Items.Refresh();
+            }
+            foreach (string file in Directory.EnumerateFiles(publicKeysPath, "*.txt"))
+            {
+                User foundUser = allUsers.Find(user => user.Email.Equals(Path.GetFileNameWithoutExtension(file)));
+                foundUser.publicKey = File.ReadAllText(file);
+            }
+        }
+
         /*ENCRYPTION, DECRYPTION*/
         private void buttonEncrypt_Click(object sender, RoutedEventArgs e)
         {
+            //setup background worker
             encryptBgw.DoWork += new DoWorkEventHandler(bgw_startEncryption);
             encryptBgw.ProgressChanged += new ProgressChangedEventHandler(bgw_progressChanged);
             encryptBgw.WorkerReportsProgress = true;
@@ -217,6 +237,7 @@ namespace EncryptorDecryptor1
 
         private void buttonDecrypt_Click(object sender, RoutedEventArgs e)
         {
+            //setup background worker
             decryptBgw.DoWork += new DoWorkEventHandler(bgw_startDecryption);
             decryptBgw.ProgressChanged += new ProgressChangedEventHandler(bgw_progressChanged);
             decryptBgw.WorkerReportsProgress = true;
@@ -225,130 +246,122 @@ namespace EncryptorDecryptor1
 
         public void bgw_startEncryption(object sender, DoWorkEventArgs e)
         {
+            //set progress bar to 0%
             encryptBgw.ReportProgress(0);
+            //generate session key for encryption
             sessionKey = GenerateRandomCryptographicKey(keySize);
+            //get file extension from input filename
             fileExt = Path.GetExtension(inputFilename);
+            //byte table for content to encrypt
             byte[] contentBytes;
-
+            //open file you want to encrypt
             using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
                 contentBytes = new byte[fs.Length];
                 byte[] oneByte = new byte[1];
-
+                //read byte by byte
                 for (int i = 0; i < fs.Length; i++)
                 {
                     encryptBgw.ReportProgress((i * 100) / (int)fs.Length);
                     fs.Read(contentBytes, i, 1);
                 }
+                //reading from file finished
                 encryptBgw.ReportProgress(100);
-
-                //contentBytes += fs.ReadByte();
-                //fs.Read(contentBytes, 0, (int)fs.Length);
             }
+            //create path for output file
             string path = outputDir + "\\" + outputFilename + fileExt;
-
+            //encrypt data using Blowfish
             byte[] encryptedData = BlowfishEncrypt(contentBytes, sessionKey);
+            //save output file with XML header
             saveWithXmlHeader(path, Convert.ToBase64String(encryptedData));
-            //ByteArrayToFile(path, BlowfishEncrypt(contentBytes, sessionKey), true);
         }
 
         public void bgw_startDecryption(object sender, DoWorkEventArgs e)
         {
+            //set progress bar to 0%
             decryptBgw.ReportProgress(0);
-            fileExt = Path.GetExtension(inputFilename);
-            //byte[] contentBytes;
-
-            //pobranie parametrow z naglowka xml
-            XElement header = XElement.Load(inputFilename);
-            Int32.TryParse(header.Element("KeySize").Value, out keySize);
-            Int32.TryParse(header.Element("BlockSize").Value, out blockSize);
-            string cipherMode = header.Element("CipherMode").Value;
-            XElement approvedUsers = header.Element("ApprovedUsers");
-
-            decryptBgw.ReportProgress(25);
-
-            bool isCurrentUserApproved = false;
-            foreach (var u in approvedUsers.Elements("User"))
+            try
             {
-                string userEmail = u.Element("Email").Value;
-                if (userEmail == senderOrReceivers[0])
+                //get file extension from input filename
+                fileExt = Path.GetExtension(inputFilename);
+
+                //get decryption parameters from XML header
+                XElement header = XElement.Load(inputFilename);
+                Int32.TryParse(header.Element("KeySize").Value, out keySize);
+                Int32.TryParse(header.Element("BlockSize").Value, out blockSize);
+                string cipherMode = header.Element("CipherMode").Value;
+                XElement approvedUsers = header.Element("ApprovedUsers");
+
+                decryptBgw.ReportProgress(25);
+
+                //check if logged user is approved to decrypt file
+                bool isCurrentUserApproved = false;
+                foreach (var u in approvedUsers.Elements("User"))
                 {
-                    decryptBgw.ReportProgress(50);
+                    string userEmail = u.Element("Email").Value;
+                    //if logged user is approved
+                    if (userEmail == senderOrReceivers[0])
+                    {
+                        decryptBgw.ReportProgress(50);
 
-                    isCurrentUserApproved = true;
-                    string userEncSessKey = u.Element("SessionKey").Value;
-                    User currUser = allUsers.Find(user => user.Email.Equals(userEmail));
-                    currUser.decryptPrivateKey(currUser.computeSha256Hash(passwordBox.Password));
-                    sessionKey = currUser.decryptSessionKey(userEncSessKey);
-                    break;
+                        isCurrentUserApproved = true;
+                        //get his encrypted session key from XML header
+                        string userEncSessKey = u.Element("SessionKey").Value;
+                        User currUser = allUsers.Find(user => user.Email.Equals(userEmail));
+                        //decrypt private key using given password
+                        currUser.decryptPrivateKey(currUser.computeSha256Hash(passwordBox.Password));
+                        //decrypt session key using decrypted private key
+                        sessionKey = currUser.decryptSessionKey(userEncSessKey);
+                        break;
+                    }
                 }
-            }
-            if (!isCurrentUserApproved)
-            {
+                //user is not approved to decrypt this file
+                if (!isCurrentUserApproved)
+                {
+                    decryptBgw.ReportProgress(100);
+                    return;
+                }
+
+                decryptBgw.ReportProgress(75);
+
+                //get encrypted data for decryption
+                string encryptedData = header.Element("EncryptedData").Value;
+                byte[] dataToDecrypt = Convert.FromBase64String(encryptedData);
+                //create path for output file
+                string path = outputDir + "\\" + outputFilename + fileExt;
+                //decrypt file using decrypted session key
+                ByteArrayToFile(path, BlowfishDecrypt(dataToDecrypt, sessionKey, cipherMode));
+                //decryption finished
                 decryptBgw.ReportProgress(100);
-                return; //uzytkownik nie jest uprawniony do odszyfrowania tego pliku
             }
-
-            decryptBgw.ReportProgress(75);
-
-            string encryptedData = header.Element("EncryptedData").Value;
-            byte[] dataToDecrypt = Convert.FromBase64String(encryptedData);
-
-            //using (FileStream fs = File.Open(inputFilename, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-            //{
-            //    contentBytes = new byte[fs.Length];
-            //    byte[] oneByte = new byte[1];
-
-            //    for (int i = 0; i < fs.Length; i++)
-            //    {
-            //        decryptBgw.ReportProgress((i * 100) / (int)fs.Length);
-            //        fs.Read(contentBytes, i, 1);
-            //    }
-            //    decryptBgw.ReportProgress(100);
-            //}
-            string path = outputDir + "\\" + outputFilename + fileExt;
-            ByteArrayToFile(path, BlowfishDecrypt(dataToDecrypt, sessionKey, cipherMode), false);
-
-            decryptBgw.ReportProgress(100);
+            catch
+            {
+                decryptBgw.ReportProgress(0);
+            }
         }
 
         public void bgw_progressChanged(object sender, ProgressChangedEventArgs e)
         {
+            //update progress bar
             progressBar.Value = e.ProgressPercentage;
         }
 
-        public bool ByteArrayToFile(string fileName, byte[] byteArray, bool isHeaderAppended)
+        public bool ByteArrayToFile(string fileName, byte[] byteArray)
         {
+            //save decrypted data to file
             try
             {
                 using (var fs = new FileStream(fileName, FileMode.Append, FileAccess.Write))
                 {
+                    //remove trailing nulls
                     int i = byteArray.Length - 1;
                     while (byteArray[i] == 0) --i;
-
+                    //clean byte array from trailing nulls
                     byte[] cleanByteArray = new byte[i + 1];
                     Array.Copy(byteArray, cleanByteArray, i + 1);
 
-                    if (isHeaderAppended)
-                    {
-                        byte[] newline = Encoding.UTF8.GetBytes(Environment.NewLine);
-                        fs.Write(newline, 0, newline.Length);
-                        //XmlDocument doc = new XmlDocument();
-                        //XmlElement encData = (XmlElement)doc.AppendChild(doc.CreateElement("EncryptedData"));
-                        //encData.InnerText = cleanByteArray;
-                        byte[] encDataOpening = Encoding.UTF8.GetBytes("<EncryptedData>");
-                        fs.Write(encDataOpening, 0, encDataOpening.Length);
+                    fs.Write(cleanByteArray, 0, cleanByteArray.Length);
 
-                        fs.Write(cleanByteArray, 0, cleanByteArray.Length);
-
-                        byte[] encDataClosing = Encoding.UTF8.GetBytes("</EncryptedData>");
-                        fs.Write(encDataClosing, 0, encDataClosing.Length);
-                    }
-                    else
-                    {
-                        fs.Write(cleanByteArray, 0, cleanByteArray.Length);
-                    }
-                    
                     return true;
                 }
             }
@@ -363,7 +376,9 @@ namespace EncryptorDecryptor1
         {
             try
             {
+                //create blowfish engine
                 BlowfishEngine engine = new BlowfishEngine();
+                //create block cipher based on user choice
                 PaddedBufferedBlockCipher cipher = null;
                 switch (encryptTypes[encryptTypeIndex])
                 {
@@ -380,15 +395,13 @@ namespace EncryptorDecryptor1
                         cipher = new PaddedBufferedBlockCipher(new OfbBlockCipher(engine, blockSize));
                         break;
                 }
-
+                //create key
                 KeyParameter keyBytes = new KeyParameter(Encoding.GetBytes(key));
-
                 cipher.Init(true, keyBytes);
 
+                //create byte array for encrypted data
                 byte[] outB = new byte[cipher.GetOutputSize(contentBytes.Length)];
-
                 int len1 = cipher.ProcessBytes(contentBytes, 0, contentBytes.Length, outB, 0);
-
                 cipher.DoFinal(outB, len1);
 
                 return outB;
@@ -401,7 +414,9 @@ namespace EncryptorDecryptor1
 
         public byte[] BlowfishDecrypt(byte[] contentBytes, string keyString, string cipherMode)
         {
+            //create blowfish engine
             BlowfishEngine engine = new BlowfishEngine();
+            //create block cipher based on user choice
             PaddedBufferedBlockCipher cipher = null;
             switch (cipherMode)
             {
@@ -418,38 +433,23 @@ namespace EncryptorDecryptor1
                     cipher = new PaddedBufferedBlockCipher(new OfbBlockCipher(engine, blockSize));
                     break;
             }
-
             StringBuilder result = new StringBuilder();
 
             cipher.Init(false, new KeyParameter(Encoding.GetBytes(keyString)));
 
-            //byte[] out1 = Hex.Decode(contentBytes);
-            byte[] out2 = new byte[cipher.GetOutputSize(contentBytes.Length)]; //tu bylo wczesniej bez dzielenia na 2
-
+            byte[] out2 = new byte[cipher.GetOutputSize(contentBytes.Length)];
             int len2 = cipher.ProcessBytes(contentBytes, 0, contentBytes.Length, out2, 0);
+            cipher.DoFinal(out2, len2);
 
-            cipher.DoFinal(out2, len2); //Pad block corrupted error happens here
-
-            //String s2 = BitConverter.ToString(out2);
-
-            //for (int i = 0; i < s2.Length; i++)
-            //{
-            //    char c = s2[i];
-                
-            //    if (c != 0)
-            //    {
-            //        result.Append(c.ToString());
-            //    }
-            //}
-
-            //string resultStr = HexStringToString(result.ToString());
             return out2;
         }
 
-        public XmlDocument saveWithXmlHeader(string path, string encData)
+        public void saveWithXmlHeader(string path, string encData)
         {
+            //create XML header
             XmlDocument doc = new XmlDocument();
 
+            //add declaration
             XmlNode declaration = doc.CreateXmlDeclaration("1.0", "UTF-8", "yes");
             doc.AppendChild(declaration);
 
@@ -480,40 +480,24 @@ namespace EncryptorDecryptor1
                 XmlElement xmlUserEmail = (XmlElement)xmlUser.AppendChild(doc.CreateElement("Email"));
                 xmlUserEmail.InnerText = user.Email;
                 XmlElement xmlUserSessionKey = (XmlElement)xmlUser.AppendChild(doc.CreateElement("SessionKey"));
+                //add session key encrypted with specific user's public key
                 xmlUserSessionKey.InnerText = user.encryptSessionKey(sessionKey);
-                //user.decryptSessionKey(xmlUserSessionKey.InnerText);
             }
-
+            //add encrypted data
             XmlElement xmlEncData = (XmlElement)header.AppendChild(doc.CreateElement("EncryptedData"));
-            xmlEncData.InnerText = encData; // Encoding.GetString(encData);
+            xmlEncData.InnerText = encData;
 
             doc.Save(path);
-            return doc;
         }
 
         public string GenerateRandomCryptographicKey(int keyLengthInBits)
         {
+            //generate trully random session key
             RNGCryptoServiceProvider rngCryptoServiceProvider = new RNGCryptoServiceProvider();
             byte[] randomBytes = new byte[keyLengthInBits/8];
             rngCryptoServiceProvider.GetBytes(randomBytes);
             rngCryptoServiceProvider.Dispose();
             return Convert.ToBase64String(randomBytes);
-        }
-
-        public void loadUsers()
-        {
-            foreach (string file in Directory.EnumerateFiles(privateKeysPath, "*.txt"))
-            {
-                User newUser = new User(Path.GetFileNameWithoutExtension(file), File.ReadAllBytes(file));
-                allUsers.Add(newUser);
-                allUsersGUI.Add(newUser.Email);
-                listView.Items.Refresh();
-            }
-            foreach (string file in Directory.EnumerateFiles(publicKeysPath, "*.txt"))
-            {
-                User foundUser = allUsers.Find(user => user.Email.Equals(Path.GetFileNameWithoutExtension(file)));
-                foundUser.publicKey = File.ReadAllText(file);
-            }
         }
     }
 }
