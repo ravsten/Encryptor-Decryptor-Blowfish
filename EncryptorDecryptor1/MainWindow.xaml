@@ -21,11 +21,13 @@
                             </GridView>
                         </ListView.View>
                     </ListView>
-                    <Rectangle Fill="#FFF4F4F5" Stroke="Black" Margin="156,10,10,143" Grid.Column="1"/>
+                    <Rectangle Fill="#FFF4F4F5" Stroke="Black" Margin="156,10,10,115" Grid.Column="1"/>
                     <Label x:Name="label8" Content="Nowy użytkownik" Grid.Column="1" HorizontalAlignment="Left" Margin="238,10,0,0" VerticalAlignment="Top"/>
                     <Label x:Name="label9" Content="Email" Grid.Column="1" HorizontalAlignment="Left" Margin="172,48,0,0" VerticalAlignment="Top"/>
-                    <Button x:Name="buttonNewUser" Content="Utwórz" Grid.Column="1" HorizontalAlignment="Left" Margin="252,93,0,0" VerticalAlignment="Top" Width="75" Click="buttonNewUser_Click"/>
+                    <Button x:Name="buttonNewUser" Content="Utwórz" Grid.Column="1" HorizontalAlignment="Left" Margin="251,124,0,0" VerticalAlignment="Top" Width="75" Click="buttonNewUser_Click" RenderTransformOrigin="0.52,-0.75"/>
                     <TextBox x:Name="textBoxNewUser" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="215,48,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="188"/>
+                    <Label x:Name="label10" Content="Hasło" Grid.Column="1" HorizontalAlignment="Left" Margin="172,83,0,0" VerticalAlignment="Top"/>
+                    <TextBox x:Name="textBoxPassword" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="215,86,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="188"/>
 
                 </Grid>
             </TabItem>
@@ -79,8 +81,9 @@
                     </ComboBox>
                     <Label x:Name="label3" Content="Wybrany tryb szyfrowania:" HorizontalAlignment="Left" Margin="0,78,0,0" VerticalAlignment="Top" Grid.Column="1"/>
                     <Label x:Name="label5" Content="Długość bloku:" Grid.Column="1" HorizontalAlignment="Left" Margin="0,149,0,0" VerticalAlignment="Top"/>
-                    <TextBox x:Name="textBoxBlockSize" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="154,152,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120" TextChanged="textBoxBlockSize_TextChanged"/>
+                    <TextBox x:Name="textBoxBlockSize" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="154,152,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
                     <Label x:Name="label7" Content="tylko dla CFB i OFB" Grid.Column="1" HorizontalAlignment="Left" Margin="154,131,0,0" VerticalAlignment="Top"/>
+                    <Button x:Name="buttonBlockSize" Content="OK" Grid.Column="1" HorizontalAlignment="Left" Margin="279,152,0,0" VerticalAlignment="Top" Width="75" Click="buttonBlockSize_Click" Height="23"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Krok 5">
@@ -89,10 +92,15 @@
                         <ColumnDefinition Width="151*"/>
                         <ColumnDefinition Width="340*"/>
                     </Grid.ColumnDefinitions>
-                    <ProgressBar x:Name="progressBar" HorizontalAlignment="Left" Height="19" Margin="10,97,0,0" VerticalAlignment="Top" Width="471" Grid.ColumnSpan="2"/>
-                    <Label x:Name="label4" Content="Operacja wykonana w:" HorizontalAlignment="Left" Margin="0,66,0,0" VerticalAlignment="Top"/>
-                    <Button x:Name="buttonEncrypt" Content="Szyfruj" HorizontalAlignment="Left" Margin="118,31,0,0" VerticalAlignment="Top" Width="75" Click="buttonEncrypt_Click" Grid.ColumnSpan="2"/>
-                    <Button x:Name="buttonDecrypt" Content="Deszyfruj" HorizontalAlignment="Left" Margin="132,31,0,0" VerticalAlignment="Top" Width="75" Click="buttonDecrypt_Click" Grid.Column="1"/>
+                    <ProgressBar x:Name="progressBar" HorizontalAlignment="Left" Height="19" Margin="10,198,0,0" VerticalAlignment="Top" Width="471" Grid.ColumnSpan="2"/>
+                    <Label x:Name="label4" Content="Operacja wykonana w:" HorizontalAlignment="Left" Margin="10,167,0,0" VerticalAlignment="Top"/>
+                    <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="157" Margin="10,10,0,0" Stroke="Black" VerticalAlignment="Top" Width="202" Grid.ColumnSpan="2"/>
+                    <Rectangle Fill="#FFF4F4F5" HorizontalAlignment="Left" Height="157" Margin="127,10,0,0" Stroke="Black" VerticalAlignment="Top" Width="202" Grid.Column="1"/>
+                    <Button x:Name="buttonEncrypt" Content="Szyfruj" HorizontalAlignment="Left" Margin="53,61,0,0" VerticalAlignment="Top" Width="112" Click="buttonEncrypt_Click" Height="51" Grid.ColumnSpan="2"/>
+                    <Button x:Name="buttonDecrypt" Content="Deszyfruj" HorizontalAlignment="Left" Margin="177,104,0,0" VerticalAlignment="Top" Width="107" Click="buttonDecrypt_Click" Grid.Column="1" Height="41"/>
+                    <Label x:Name="label11" Content="Wpisz swoje hasło" HorizontalAlignment="Left" Margin="177,35,0,0" VerticalAlignment="Top" Grid.Column="1"/>
+                    <PasswordBox x:Name="passwordBox" Grid.Column="1" HorizontalAlignment="Left" Margin="161,61,0,0" VerticalAlignment="Top" Width="137" Height="23"/>
+                    <Label x:Name="label12" Content="lub" Grid.Column="1" HorizontalAlignment="Left" Margin="83,86,0,0" VerticalAlignment="Top" Width="28"/>
                 </Grid>
             </TabItem>
         </TabControl>
