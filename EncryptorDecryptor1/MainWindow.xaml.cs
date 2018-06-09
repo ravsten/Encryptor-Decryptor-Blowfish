@@ -49,7 +49,7 @@ namespace EncryptorDecryptor1
         public MainWindow()
         {
             InitializeComponent();
-            this.Title = "Encryptor/Decryptor 0.1";
+            this.Title = "Encryptor/Decryptor 1.0";
 
             loadUsers();
 

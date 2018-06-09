@@ -84,6 +84,7 @@
                     <TextBox x:Name="textBoxBlockSize" Grid.Column="1" HorizontalAlignment="Left" Height="23" Margin="154,152,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="120"/>
                     <Label x:Name="label7" Content="tylko dla CFB i OFB" Grid.Column="1" HorizontalAlignment="Left" Margin="154,131,0,0" VerticalAlignment="Top"/>
                     <Button x:Name="buttonBlockSize" Content="OK" Grid.Column="1" HorizontalAlignment="Left" Margin="279,152,0,0" VerticalAlignment="Top" Width="75" Click="buttonBlockSize_Click" Height="23"/>
+                    <Label x:Name="label13" Content="Wypełnij tylko w przypadku szyfrowania!" Grid.Column="1" HorizontalAlignment="Left" Margin="64,19,0,0" VerticalAlignment="Top" Foreground="Red"/>
                 </Grid>
             </TabItem>
             <TabItem Header="Krok 5">
